@@ -1,3 +1,14 @@
+# Create VPS
+
+1. Create one preview instance (GTMPreview) attach a static ip
+2. Create another live instance (GTMLive) attach a static ip
+
+
+# Setup A-records
+
+preview.tagging.domain.com -> static ip
+live.tagging.domain.com -> static ip
+
 # Preview container setup
 
 sudo apt update       
@@ -56,6 +67,7 @@ docker run -d \
   -e RUN_AS_PREVIEW_SERVER=true \
   gcr.io/cloud-tagging-10302018/gtm-cloud-image:stable
 
+# Live Container setup
 docker run -d \
   --name gtm-live \
   -p 8080:8080 \
