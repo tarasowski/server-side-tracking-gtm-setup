@@ -19,12 +19,15 @@ sudo apt install nginx -y
 sudo apt install certbot python3-certbot-nginx -y
 sudo certbot --nginx -d preview.tagging.domain.com
 
+# you need to run this 2 times for preview and for live server
+
 sudo vi /etc/nginx/sites-available/tagging.conf
 sudo vi /etc/nginx/nginx.conf # change in includes to show to the tagging.conf
 
+
 server {
     listen 80;
-    server_name preview.tagging.mvpfoundry.com;
+    server_name preview.tagging.domain.com;
 
     # Redirect all HTTP requests to HTTPS
     return 301 https://$host$request_uri;
