@@ -1,0 +1,91 @@
+# Myra Setup
+
+1. Create one preview node (GTMPreview) attach a static ip
+2. Create another live node (GTMLive) attach a static ip
+
+# Setup A-records
+
+preview.gtm.myrasecurity.com -> static ip of instance 1 (node)
+live.gtm.myrasecurity.com -> static ip of instance 2 (node)
+
+# Docker Container
+
+1. on the preview node, run this:
+docker run -d \
+  --name gtm-preview \
+  -p 8080:8080 \
+  -e CONTAINER_CONFIG='aWQ9R1RNLUs0N1hUSk40JmVudj0xJmF1dGg9b1dZS0pONVN2ZTV0SVVCTWhwOXREUQ==' \
+  -e RUN_AS_PREVIEW_SERVER=true \
+  gcr.io/cloud-tagging-10302018/gtm-cloud-image:stable
+
+2. on the live node, run this:
+docker run -d \
+  --name gtm-live \
+  -p 8080:8080 \
+  -e CONTAINER_CONFIG='aWQ9R1RNLUs0N1hUSk40JmVudj0xJmF1dGg9b1dZS0pONVN2ZTV0SVVCTWhwOXREUQ==' \
+  -e PREVIEW_SERVER_URL='https://preview.gtm.myrasecurity.com' \
+  gcr.io/cloud-tagging-10302018/gtm-cloud-image:stable
+
+# SSL
+both containers should run behind a reverse proxy, here is an example for preview container:
+
+
+```
+server {
+    listen 443 ssl;
+    server_name preview.gtm.myrasecurity.com;
+
+    ssl_certificate /etc/letsencrypt/live/preview.gtm.myrasecurity.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/preview.gtm.myrasecurity.com/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $http_host;
+    
+        # Prevent header stripping (important for GTM)
+        proxy_pass_request_headers on;
+
+        proxy_read_timeout 40s;
+        proxy_connect_timeout 40s;
+        proxy_send_timeout 40s;
+    }
+
+}
+
+```
+
+here is an example for live node:
+```
+server {
+    listen 443 ssl;
+    server_name live.gtm.myrasecurity.com;
+
+    ssl_certificate /etc/letsencrypt/live/live.gtm.myrasecurity.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/live.gtm.myrasecurity.com/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $http_host;
+        # Prevent header stripping (important for GTM)
+        proxy_pass_request_headers on;
+
+        proxy_read_timeout 40s;
+        proxy_connect_timeout 40s;
+        proxy_send_timeout 40s;
+    }
+}
+``` 
+
+Important for reverse proxy all headers should pass, no filtering of headers.
+
+# Health check
+https://preview.gtm.myrasecurity.com/healtz
+https://live.gtm.myrasecurity.com/healtz
